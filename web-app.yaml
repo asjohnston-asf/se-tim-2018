@@ -10,8 +10,8 @@ Parameters:
     Description: List of Subnet Ids in which to launch EC2 instances
     Type: List<AWS::EC2::Subnet::Id>
 
-  Bucket:
-    Description: Name of S3 bucket where product files are stored
+  ProductBucket:
+    Description: Name of your S3 bucket where product files are stored
     Type: String
 
   ContainerImage:
@@ -19,22 +19,27 @@ Parameters:
     Type: String
 
   UrsServer:
+    Description: URL for the Earthdata Login server to integrate with
     Type: String
     Default: https://urs.earthdata.nasa.gov
 
   UrsClientId:
+    Description: Client ID for your Earthdata Login application
     Type: String
 
   UrsAuthCode:
+    Description: App password for your Earthdata Login application
     Type: String
     NoEcho: true
 
   LoadBalancerCidrIp:
+    Description: CIDR block from which the web app will allow traffic
     Type: String
+    Default: 0.0.0.0/0
 
   Ami:
+    Description: Runtime ECS-Optimized AMI
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Description: Runtime AMI
     Default: /aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id
 
 Outputs:
@@ -133,7 +138,7 @@ Resources:
           Statement:
           - Effect: Allow
             Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+            Resource: !Sub "arn:aws:s3:::${ProductBucket}/*"
 
   LogGroup:
     Type: AWS::Logs::LogGroup
@@ -162,7 +167,7 @@ Resources:
         - Name: APP_CONFIG
           Value: !Sub |-
             {
-              "bucket": "${Bucket}",
+              "bucket": "${ProductBucket}",
               "expire_time_in_seconds": 15
             }
         - Name: SERVER_NAME
