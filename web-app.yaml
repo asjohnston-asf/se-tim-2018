@@ -1,0 +1,261 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  VpcId:
+    Description: VPC Id in which to launch EC2 instances
+    Type: AWS::EC2::VPC::Id
+
+  SubnetId:
+    Description: List of Subnet Ids in which to launch EC2 instances
+    Type: List<AWS::EC2::Subnet::Id>
+
+  Bucket:
+    Description: Name of S3 bucket where product files are stored
+    Type: String
+
+  ContainerImage:
+    Description: URL for runtime docker container for distribution web application (repository-url/image:tag)
+    Type: String
+
+  UrsClientId:
+    Type: String
+
+  UrsAuthCode:
+    Type: String
+
+  LoadBalancerCidrIp:
+    Type: String
+
+  Ami:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Description: Runtime AMI
+    Default: /aws/service/ecs/optimized-ami/amazon-linux/recommended/image_id
+
+Outputs:
+
+  AppUrl:
+    Value: !Sub "http://${LoadBalancer.DNSName}/distribution/"
+
+  UrsRedirectUri:
+    Value: !Sub "http://${LoadBalancer.DNSName}/distribution/oauth"
+
+Resources:
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref AWS::StackName
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-instance"
+      GroupDescription: !Sub "Security group for ${AWS::StackName} servers"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-ecsInstanceRole"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: !Ref InstanceRole
+      Roles:
+      - !Ref InstanceRole
+
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !GetAtt InstanceProfile.Arn
+      ImageId: !Ref Ami
+      InstanceType: t2.nano
+      SecurityGroups:
+      - !Ref InstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |-
+          #!/bin/bash -xe
+          echo ECS_CLUSTER="${Cluster}" >> /etc/ecs/ecs.config
+          echo ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION=1m >> /etc/ecs/ecs.config
+      InstanceMonitoring: false
+
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref SubnetId
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 1
+      MaxSize: 1
+      Tags:
+      - Key: Name
+        Value: !Ref AWS::StackName
+        PropagateAtLaunch: true
+
+  TaskIamRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref AWS::StackName
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+            - ecs-tasks.amazonaws.com
+          Effect: Allow
+      Policies:
+      - PolicyName: policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref AWS::StackName
+      RetentionInDays: 30
+
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      TaskRoleArn: !Ref TaskIamRole
+      ContainerDefinitions:
+      - Name: !Ref AWS::StackName
+        Image: !Ref ContainerImage
+        MemoryReservation: 256
+        Cpu: 1024
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group: !Ref LogGroup
+            awslogs-region: !Ref AWS::Region
+        PortMappings:
+        - ContainerPort: 80
+          HostPort: 80
+        Environment:
+        - Name: APP_CONFIG
+          Value: !Sub |-
+            {
+              "bucket": "${Bucket}",
+              "expire_time_in_seconds": 15
+            }
+        - Name: SERVER_NAME
+          Value: !GetAtt LoadBalancer.DNSName
+        - Name: URS_ACCESS_ERROR_URL
+          Value: !Sub "http://${LoadBalancer.DNSName}/error/failedauth.html"
+        - Name: URS_AUTH_CODE
+          Value: !Ref UrsAuthCode
+        - Name: URS_AUTH_SERVER
+          Value: https://urs.earthdata.nasa.gov
+        - Name: URS_CLIENT_ID
+          Value: !Ref UrsClientId
+        - Name: URS_REDIRECT_URL
+          Value: !Sub "http://${LoadBalancer.DNSName}/distribution/oauth"
+
+  ScalingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-ecsAutoscaleRole"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - application-autoscaling.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
+
+  ServiceScalingTarget:
+    Type: AWS::ApplicationAutoScaling::ScalableTarget
+    Properties:
+      MinCapacity: 1
+      MaxCapacity: 1
+      ResourceId: !Sub "service/${Cluster}/${Service.Name}"
+      RoleARN: !GetAtt ScalingRole.Arn
+      ScalableDimension: ecs:service:DesiredCount
+      ServiceNamespace: ecs
+
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn:
+    - HttpListener
+    Properties:
+      ServiceName: !Ref AWS::StackName
+      Cluster: !Ref Cluster
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 100
+      LoadBalancers:
+      - TargetGroupArn: !Ref TargetGroup
+        ContainerName: !Ref AWS::StackName
+        ContainerPort: 80
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: !Ref AWS::StackName
+      HealthCheckIntervalSeconds: 120
+      HealthCheckPath: /healthcheck.html
+      HealthyThresholdCount: 2
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetGroupAttributes:
+      - Key: deregistration_delay.timeout_seconds
+        Value: 0
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${AWS::StackName}-load-balancer"
+      GroupDescription: !Sub "Security group for ${AWS::StackName} load balancer"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - CidrIp: !Ref LoadBalancerCidrIp
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Ref AWS::StackName
+      Subnets: !Ref SubnetId
+      SecurityGroups:
+      - !GetAtt LoadBalancerSecurityGroup.GroupId
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP

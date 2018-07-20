@@ -1,0 +1,25 @@
+FROM ubuntu:16.04
+MAINTAINER "Alaska Satellite Facility"
+
+ENTRYPOINT ["apachectl", "-DFOREGROUND"]
+
+RUN apt-get update
+RUN apt-get install -y apache2 libssl-dev libapache2-mod-wsgi apache2-dev python python-pip git-core
+
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install -r /tmp/requirements.txt
+
+RUN git clone https://git.earthdata.nasa.gov/scm/aam/apache-urs-authentication-module.git /tmp/urs
+RUN cd /tmp/urs && git checkout cbdc84a
+RUN cd /tmp/urs && apxs -i -c -n mod_auth_urs mod_auth_urs.c mod_auth_urs_cfg.c mod_auth_urs_session.c mod_auth_urs_ssl.c mod_auth_urs_http.c mod_auth_urs_json.c mod_auth_urs_crypto.c
+
+RUN a2enmod rewrite
+RUN a2enmod authz_groupfile
+RUN a2enmod ssl
+
+RUN mkdir -p /var/tmp/urs/session
+RUN chgrp -R www-data /var/tmp/urs
+RUN chown -R www-data /var/tmp/urs
+
+COPY src /var/www/
+COPY apache2.conf /etc/apache2/apache2.conf
