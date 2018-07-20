@@ -109,7 +109,7 @@ Resources:
         Value: !Ref AWS::StackName
         PropagateAtLaunch: true
 
-  TaskIamRole:
+  TaskRole:
     Type: AWS::IAM::Role
     Properties:
       RoleName: !Ref AWS::StackName
@@ -119,7 +119,6 @@ Resources:
           Action: sts:AssumeRole
           Principal:
             Service:
-            - ec2.amazonaws.com
             - ecs-tasks.amazonaws.com
           Effect: Allow
       Policies:
@@ -140,7 +139,7 @@ Resources:
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
     Properties:
-      TaskRoleArn: !Ref TaskIamRole
+      TaskRoleArn: !Ref TaskRole
       ContainerDefinitions:
       - Name: !Ref AWS::StackName
         Image: !Ref ContainerImage
@@ -173,31 +172,6 @@ Resources:
           Value: !Ref UrsClientId
         - Name: URS_REDIRECT_URL
           Value: !Sub "http://${LoadBalancer.DNSName}/distribution/oauth"
-
-  ScalingRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub "${AWS::StackName}-ecsAutoscaleRole"
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - application-autoscaling.amazonaws.com
-          Action: sts:AssumeRole
-      ManagedPolicyArns:
-      - arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceAutoscaleRole
-
-  ServiceScalingTarget:
-    Type: AWS::ApplicationAutoScaling::ScalableTarget
-    Properties:
-      MinCapacity: 1
-      MaxCapacity: 1
-      ResourceId: !Sub "service/${Cluster}/${Service.Name}"
-      RoleARN: !GetAtt ScalingRole.Arn
-      ScalableDimension: ecs:service:DesiredCount
-      ServiceNamespace: ecs
 
   Service:
     Type: AWS::ECS::Service
