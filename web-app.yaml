@@ -18,11 +18,16 @@ Parameters:
     Description: URL for runtime docker container for distribution web application (repository-url/image:tag)
     Type: String
 
+  UrsServer:
+    Type: String
+    Default: https://urs.earthdata.nasa.gov
+
   UrsClientId:
     Type: String
 
   UrsAuthCode:
     Type: String
+    NoEcho: true
 
   LoadBalancerCidrIp:
     Type: String
@@ -167,7 +172,7 @@ Resources:
         - Name: URS_AUTH_CODE
           Value: !Ref UrsAuthCode
         - Name: URS_AUTH_SERVER
-          Value: https://urs.earthdata.nasa.gov
+          Value: !Ref UrsServer
         - Name: URS_CLIENT_ID
           Value: !Ref UrsClientId
         - Name: URS_REDIRECT_URL
