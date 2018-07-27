@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
 
+  Name:
+    Type: String
+
   LogBucket:
     Type: String
 
@@ -18,7 +21,7 @@ Resources:
   PrivateBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-private"
+      BucketName: !Sub "${Name}-private"
       LoggingConfiguration:
         DestinationBucketName: !Ref LogBucket
         LogFilePrefix: private/
@@ -26,7 +29,7 @@ Resources:
   PublicBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-public"
+      BucketName: !Sub "${Name}-public"
       LoggingConfiguration:
         DestinationBucketName: !Ref LogBucket
         LogFilePrefix: public/
