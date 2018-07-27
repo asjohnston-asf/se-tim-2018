@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Parameters:
+
+  VpcId:
+    Description: VPC Id in which to launch EC2 instances
+    Type: AWS::EC2::VPC::Id
+
+  SubnetId:
+    Description: List of Subnet Ids in which to launch EC2 instances
+    Type: List<AWS::EC2::Subnet::Id>
+
+  ContainerImage:
+    Description: URL for runtime docker container for distribution web application (repository-url/image:tag)
+    Type: String
+
+  UrsServer:
+    Description: URL for the Earthdata Login server to integrate with
+    Type: String
+    Default: https://urs.earthdata.nasa.gov
+
+  UrsClientId:
+    Description: Client ID for your Earthdata Login application
+    Type: String
+
+  UrsAuthCode:
+    Description: App password for your Earthdata Login application
+    Type: String
+    NoEcho: true
+
+  LoadBalancerCidrIp:
+    Description: CIDR block from which the web app will allow traffic
+    Type: String
+    Default: 0.0.0.0/0
+
+  ElasticSearchCidrIp:
+    Description: CIDR block from which elasticsearch will allow traffic
+    Type: String
+
+Outputs:
+
+  AppUrl:
+    Value: !GetAtt DistributionStack.Outputs.AppUrl
+
+  UrsRedirectUri:
+    Value: !GetAtt DistributionStack.Outputs.UrsRedirectUri
+
+  PrivateBucket:
+    Value: !GetAtt StorageStack.Outputs.PrivateBucket
+
+  PublicBucket:
+    Value: !GetAtt StorageStack.Outputs.PublicBucket
+
+  KibanaUrl:
+    Value: !GetAtt LoggingStack.Outputs.KibanaUrl
+
+Resources:
+
+  LoggingStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${AWS::StackName}-logging"
+        ElasticSearchCidrIp: !Ref ElasticSearchCidrIp
+      TemplateURL: logging/cloudformation.yaml
+
+  StorageStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${AWS::StackName}-storage"
+        LogBucket: !GetAtt LoggingStack.Outputs.LogBucket
+      TemplateURL: storage/cloudformation.yaml
+
+  DistributionStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        Name: !Sub "${AWS::StackName}-distribution"
+        ElasticSearchCidrIp: !Ref ElasticSearchCidrIp
+      TemplateURL: distribution/cloudformation.yaml
