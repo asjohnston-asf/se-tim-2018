@@ -8,6 +8,14 @@ Parameters:
   ElasticSearchCidrIp:
     Type: String
 
+Outputs:
+
+  LogBucket:
+    Value: !Ref LogBucket
+
+  KibanaUrl:
+    Value: !Sub "${Domain.DomainEndpoint}/_plugin/kibana/"
+
 Resources:
 
   LogBucket:
