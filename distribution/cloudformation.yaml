@@ -2,6 +2,9 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
 
+  Name:
+    Type: String
+
   VpcId:
     Description: VPC Id in which to launch EC2 instances
     Type: AWS::EC2::VPC::Id
@@ -55,13 +58,13 @@ Resources:
   Cluster:
     Type: AWS::ECS::Cluster
     Properties:
-      ClusterName: !Ref AWS::StackName
+      ClusterName: !Ref Name
 
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "${AWS::StackName}-instance"
-      GroupDescription: !Sub "Security group for ${AWS::StackName} servers"
+      GroupName: !Sub "${Name}-instance"
+      GroupDescription: !Sub "Security group for ${Name} servers"
       VpcId: !Ref VpcId
       SecurityGroupIngress:
       - SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
@@ -72,7 +75,7 @@ Resources:
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${AWS::StackName}-ecsInstanceRole"
+      RoleName: !Sub "${Name}-ecsInstanceRole"
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -116,13 +119,13 @@ Resources:
       MaxSize: 1
       Tags:
       - Key: Name
-        Value: !Ref AWS::StackName
+        Value: !Ref Name
         PropagateAtLaunch: true
 
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Ref AWS::StackName
+      RoleName: !Ref Name
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -143,7 +146,7 @@ Resources:
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Ref AWS::StackName
+      LogGroupName: !Ref Name
       RetentionInDays: 30
 
   TaskDefinition:
@@ -151,7 +154,7 @@ Resources:
     Properties:
       TaskRoleArn: !Ref TaskRole
       ContainerDefinitions:
-      - Name: !Ref AWS::StackName
+      - Name: !Ref Name
         Image: !Ref ContainerImage
         MemoryReservation: 256
         Cpu: 1024
@@ -188,7 +191,7 @@ Resources:
     DependsOn:
     - HttpListener
     Properties:
-      ServiceName: !Ref AWS::StackName
+      ServiceName: !Ref Name
       Cluster: !Ref Cluster
       DesiredCount: 1
       TaskDefinition: !Ref TaskDefinition
@@ -197,13 +200,13 @@ Resources:
         MaximumPercent: 100
       LoadBalancers:
       - TargetGroupArn: !Ref TargetGroup
-        ContainerName: !Ref AWS::StackName
+        ContainerName: !Ref Name
         ContainerPort: 80
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
-      Name: !Ref AWS::StackName
+      Name: !Ref Name
       HealthCheckIntervalSeconds: 120
       HealthCheckPath: /healthcheck.html
       HealthyThresholdCount: 2
@@ -217,8 +220,8 @@ Resources:
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupName: !Sub "${AWS::StackName}-load-balancer"
-      GroupDescription: !Sub "Security group for ${AWS::StackName} load balancer"
+      GroupName: !Sub "${Name}-load-balancer"
+      GroupDescription: !Sub "Security group for ${Name} load balancer"
       VpcId: !Ref VpcId
       SecurityGroupIngress:
       - CidrIp: !Ref LoadBalancerCidrIp
@@ -229,7 +232,7 @@ Resources:
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Name: !Ref AWS::StackName
+      Name: !Ref Name
       Subnets: !Ref SubnetId
       SecurityGroups:
       - !GetAtt LoadBalancerSecurityGroup.GroupId
