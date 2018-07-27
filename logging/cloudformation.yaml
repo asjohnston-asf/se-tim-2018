@@ -93,7 +93,7 @@ Resources:
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
             Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${LogBucket}/*"
+            Resource: !Sub "arn:aws:s3:::${Name}/*"
           - Effect: Allow
             Action:
             - es:ESHttpHead
@@ -131,4 +131,4 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: s3.amazonaws.com
       SourceAccount: !Ref AWS::AccountId
-      SourceArn: !GetAtt LogBucket.Arn
+      SourceArn: !Sub "arn:aws:s3:::${Name}"
