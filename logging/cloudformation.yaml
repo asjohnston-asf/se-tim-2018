@@ -16,7 +16,7 @@ Resources:
       BucketName: !Ref Name
       AccessControl: LogDeliveryWrite
       NotificationConfiguration:
-        LambdaConfiguration:
+        LambdaConfigurations:
         - Function: !GetAtt Lambda.Arn
           Event: s3:ObjectCreated:*
 
