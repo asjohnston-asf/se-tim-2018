@@ -108,7 +108,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Ref AWS::StackName 
-      Code: logging/
+      Code: src/
       DeadLetterConfig:
         TargetArn: !GetAtt DeadLetterQueue.Arn
       Role: !GetAtt Role.Arn
