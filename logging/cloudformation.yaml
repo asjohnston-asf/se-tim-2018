@@ -23,7 +23,7 @@ Resources:
   Domain:
     Type: AWS::Elasticsearch::Domain
     Properties:
-      DomainName: !Ref AWS::StackName
+      DomainName: !Ref Name
       ElasticsearchVersion: 6.2
       AccessPolicies: !Sub |-
         {
@@ -35,7 +35,7 @@ Resources:
                 "AWS": "*"
               },
               "Action": "es:*",
-              "Resource": "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${AWS::StackName}/*",
+              "Resource": "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${Name}/*",
               "Condition": {
                 "IpAddress": {
                   "aws:SourceIp": "${ElasticSearchCidrIp}"
@@ -57,19 +57,19 @@ Resources:
   DeadLetterQueue:
     Type: AWS::SQS::Queue
     Properties:
-      QueueName: !Sub "${AWS::StackName}-dlq"
+      QueueName: !Sub "${Name}-dlq"
       MessageRetentionPeriod: 1209600
 
   LogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: !Sub "/aws/lambda/${AWS::StackName}"
+      LogGroupName: !Sub "/aws/lambda/${Name}"
       RetentionInDays: 30
 
   Role:
     Type: AWS::IAM::Role
     Properties: 
-      RoleName: !Ref AWS::StackName
+      RoleName: !Ref Name
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -111,7 +111,7 @@ Resources:
   Lambda:
     Type: AWS::Lambda::Function
     Properties:
-      FunctionName: !Ref AWS::StackName 
+      FunctionName: !Ref Name
       Code: src/
       DeadLetterConfig:
         TargetArn: !GetAtt DeadLetterQueue.Arn
