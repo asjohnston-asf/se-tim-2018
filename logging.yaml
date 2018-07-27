@@ -2,13 +2,19 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
 
-  EsAccessCIDR:
+  Name:
     Type: String
 
-  LogBucketName:
+  ElasticSearchCidrIp:
     Type: String
 
 Resources:
+
+  LogBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref Name
+      AccessControl: LogDeliveryWrite
 
   Domain:
     Type: AWS::Elasticsearch::Domain
@@ -28,7 +34,7 @@ Resources:
               "Resource": "arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${AWS::StackName}/*",
               "Condition": {
                 "IpAddress": {
-                  "aws:SourceIp": "${EsAccessCIDR}"
+                  "aws:SourceIp": "${ElasticSearchCidrIp}"
                 }
               }
             }
@@ -83,7 +89,7 @@ Resources:
             Resource: !GetAtt DeadLetterQueue.Arn
           - Effect: Allow
             Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${LogBucketName}/*"
+            Resource: !Sub "arn:aws:s3:::${LogBucket}/*"
           - Effect: Allow
             Action:
             - es:ESHttpHead
@@ -121,4 +127,4 @@ Resources:
       Action: lambda:InvokeFunction
       Principal: s3.amazonaws.com
       SourceAccount: !Ref AWS::AccountId
-      SourceArn: !Sub "arn:aws:s3:::${LogBucketName}"
+      SourceArn: !GetAtt LogBucket.Arn

@@ -1,5 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 
+Parameters:
+
+  LogBucket:
+    Type: String
+
 Outputs:
 
   PrivateBucket:
@@ -8,16 +13,7 @@ Outputs:
   PublicBucket:
     Value: !Ref PublicBucket
 
-  LogBucket:
-    Value: !Ref LogBucket
-
 Resources:
-
-  LogBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "${AWS::StackName}-logs"
-      AccessControl: LogDeliveryWrite
 
   PrivateBucket:
     Type: AWS::S3::Bucket
