@@ -92,4 +92,4 @@ def process_log_file(bucket, key):
 
 def lambda_handler(event, context):
     for record in event['Records']:
-        process_log_file(record['bucket']['name'], record['object']['key'])
+        process_log_file(record['s3']['bucket']['name'], record['s3']['object']['key'])
