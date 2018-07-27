@@ -15,6 +15,10 @@ Resources:
     Properties:
       BucketName: !Ref Name
       AccessControl: LogDeliveryWrite
+      NotificationConfiguration:
+        LambdaConfiguration:
+        - Function: !GetAtt Lambda.Arn
+          Event: s3:ObjectCreated:*
 
   Domain:
     Type: AWS::Elasticsearch::Domain
