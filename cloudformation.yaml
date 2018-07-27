@@ -77,5 +77,10 @@ Resources:
     Properties:
       Parameters:
         Name: !Sub "${AWS::StackName}-distribution"
-        ElasticSearchCidrIp: !Ref ElasticSearchCidrIp
+        VpcId: !Ref VpcId
+        SubnetId: !Join [",", !Ref SubnetId]
+        ProductBucket: !GetAtt StorageStack.Outputs.PrivateBucket
+        ContainerImage: !Ref ContainerImage
+        UrsClientId: !Ref UrsClientId
+        UrsAuthCode: !Ref UrsAuthCode
       TemplateURL: distribution/cloudformation.yaml
