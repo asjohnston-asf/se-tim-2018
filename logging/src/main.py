@@ -12,15 +12,13 @@ from aws_requests_auth.aws_auth import AWSRequestsAuth
 indexDoc = {
     'dataRecord': {
         'properties': {
-            'ip_address':  {'type': 'ip'},
-            'datetime':    {'type': 'date'},
-            'operation':   {'type': 'string'},
-            'file_name':   {'type': 'string'},
-            'http_status': {'type': 'long'},
-            'bytes_sent':  {'type': 'long'},
-            'file_size':   {'type': 'long'},
-            'user_id':     {'type': 'string'},
-            'request_id':  {'type': 'string'},
+            'request_time': {'type': 'date'},
+            'file_name':    {'type': 'string'},
+            'user_id':      {'type': 'string'},
+            'ip_address':   {'type': 'ip'},
+            'http_status':  {'type': 'long'},
+            'bytes_sent':   {'type': 'long'},
+            'file_size':    {'type': 'long'},
         },
     },
     'settings': {
@@ -68,26 +66,26 @@ def get_elasticsearch_connection(domain_url):
 
 
 def process_log_file(bucket, key):
-    index = 'myindex'
+    index = os.getenv('ES_INDEX')
     records = get_log_records(bucket, key)
     es = get_elasticsearch_connection(os.getenv('ES_HOST'))
     if not es.indices.exists(index):
         es.indices.create(index, body=indexDoc)
     for record in records:
+        request_id = record[6]
+        operation = record[7]
         data = {
+            'request_time': datetime.strptime(' '.join(record[2:4]), "[%d/%b/%Y:%H:%M:%S %z]"),
             'ip_address': record[4],
-            'datetime': datetime.strptime(' '.join(record[2:4]), "[%d/%b/%Y:%H:%M:%S %z]"),
-            'request_id': record[6],
-            'operation': record[7],
             'file_name': record[8],
+            'user_id': get_user_id(record[9]),
             'http_status': to_number(record[10]),
             'bytes_sent': to_number(record[12]),
             'file_size': to_number(record[13]),
-            'user_id': get_user_id(record[9]),
         }
-        if data['operation'] == 'REST.GET.OBJECT' and data['http_status'] in [200, 206]:
+        if operation == 'REST.GET.OBJECT' and data['http_status'] in [200, 206]:
             print(data)
-            es.index(index=index, id=data['request_id'], doc_type='log', body=data)
+            es.index(index=index, id=request_id, doc_type='log', body=data)
 
 
 def lambda_handler(event, context):

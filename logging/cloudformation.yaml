@@ -14,7 +14,7 @@ Outputs:
     Value: !Ref LogBucket
 
   KibanaUrl:
-    Value: !Sub "${Domain.DomainEndpoint}/_plugin/kibana/"
+    Value: !Sub "https://${Domain.DomainEndpoint}/_plugin/kibana/"
 
 Resources:
 
@@ -127,6 +127,7 @@ Resources:
       Environment: 
         Variables:
           ES_HOST: !GetAtt Domain.DomainEndpoint
+          ES_INDEX: !Ref Name
       Timeout: 60
       Handler: main.lambda_handler
       Runtime: python3.6
