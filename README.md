@@ -36,7 +36,7 @@
 1. Create a new S3 bucket to hold cloudformation artifacts.
 
    ```
-   aws s3api create-bucket --bucket <bucket_name>
+   aws s3api create-bucket --bucket <artifact_bucket_name>
    ```
 
 # Build and Deploy
@@ -59,7 +59,7 @@
 1. Package the cloudformation template.
 
    ```
-   aws cloudformation package --template-file cloudformation.yaml --s3-bucket <bucket_name> --output-template-file cloudformation-packaged.yaml
+   aws cloudformation package --template-file cloudformation.yaml --s3-bucket <artifact_bucket_name> --output-template-file cloudformation-packaged.yaml
    ```
 
 1. Deploy the packaged cloudformation template.  This step can take 10-20 minutes.
