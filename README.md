@@ -1,45 +1,33 @@
 # Setup
 
-1. Provision a new Amazon Web Services account
+1. Provision a new Amazon Web Services account.
 
-1. Create an IAM user and access key
+   - [How do I create and activate a new Amazon Web Services account?](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/)
 
-1. Install and configure the AWS CLI
+1. Create an IAM user and access key.
 
-1. Clone this repository
+   - [Creating Your First IAM Admin User and Group](https://docs.aws.amazon.com/IAM/latest/UserGuide/getting-started_create-admin-group.html)
+   - [Managing Access Keys for IAM Users](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html)
+
+1. Install the AWS Command Line Interface and configure your default region and access keys.
+
+   - [Installing the AWS Command Line Interface](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
+   - [Configuring the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
+
+1. Clone this repository.
 
    ```
    git clone git@github.com:asjohnston-asf/se-tim-2018.git
    cd se-tim-2018
    ```
 
-# Storage
+1. Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.
 
-1. Deploy the storage cloudformation template
+   - [How To Register An Application](https://wiki.earthdata.nasa.gov/display/EL/How+To+Register+An+Application)
 
-   ```
-   aws cloudformation deploy --template-file buckets.yaml --stack-name <my_stack_name>
-   ```
+# Build and Deploy
 
-   Note the values for your <public_bucket_name>, <private_bucket_name>, and <log_bucket_name>
-
-1. Upload your browse images
-
-   ```
-   aws s3 cp <browse_folder> s3://<public_bucket_name> --recursive
-   ```
-
-1. Upload your product files
-
-   ```
-   aws s3 cp <product_folder> s3://<private_bucket_name> --recursive
-   ```
-
-# Distribution
-
-1. Create an application in URS.  Note your app's <client_id> and <app_password>
-
-1. Create a docker repository for the distribution web app
+1. Create a docker repository for the distribution web app.
 
    ```
    aws ecr create-repository --repository-name distribution
@@ -47,33 +35,57 @@
 
    Note the value for your <docker_repo_url>
 
-1. Build the distribution web app
+1. Build the distribution web app and upload the docker image to your docker repository.
 
    ```
-   docker build -t distribution web-app/
+   docker build -t distribution distribution/
    $(aws ecr get-login --no-include-email)
    docker tag distribution:latest <docker_repo_url>/distribution:latest
    docker push <docker_repo_url> distribution:latest
    ```
 
-1. Deploy the cloudformation template for the distribution web app
+1. Deploy the cloudformation template.  This step can take 10-20 minutes.
 
    ```
-   aws cloudformation deploy --template-file web-app.yaml --stack-name distribution --capabilities CAPABILITY_NAMED_IAM --parameter-overrides \
+   aws cloudformation deploy --template-file cloudformation.yaml --stack-name <stack_name> --capabilities CAPABILITY_NAMED_IAM --parameter-overrides \
      VpcId=<> \
      SubnetId=<> \
-     ProductBucket=<private_bucket_name> \
      ContainerImage=<docker_repo_url> \
      UrsClientId=<urs_client_id> \
      UrsAuthCode=<urs_password>
+     ElasticSearchCidrIp=<local ip>
    ```
 
-   Note the values for your <urs_redirect_url> and <app_url>
+   Note the stack output values for your:
+     <app_url>
+     <urs_redirect_url>
+     <private_bucket_name>
+     <public_bucket_name>
+     <kibana_url>
 
-1. Add your app's redirect URL in URS
+1. Add your app's <urs_redirect_url> in URS.
 
-# Discovery
+   - [Manage Redirect URIs](https://developer.earthdata.nasa.gov/urs/urs-integration/how-to-register-an-application/manage-redirect-uris)
 
-1. Create a new collection in CMR and make it visible in MMT
+# Upload data
 
-1. Run the cmr update script to populate your new collection in CMR
+1. Upload your browse images to your public bucket
+
+   ```
+   aws s3 cp <browse_folder> s3://<public_bucket_name> --recursive
+   ```
+
+1. Upload your product files to your private bucket
+
+   ```
+   aws s3 cp <product_folder> s3://<private_bucket_name> --recursive
+   ```
+
+# Update CMR
+
+1. Clone your collection in the Common Metadata Repository using the Metadata Management Tool.  Note your new collection's <collection_concept_id>.
+
+   - [Metadata Management Tool (MMT) User's Guide](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide)
+     - [Clone and edit a collection record in the CMR for my provider](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide#MetadataManagementTool(MMT)User'sGuide-CloneandeditacollectionrecordintheCMRformyprovider)
+
+1. Run the cmr update script to populate your new collection in CMR.
