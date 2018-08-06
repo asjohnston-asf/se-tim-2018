@@ -25,8 +25,6 @@
 
    - [How To Register An Application](https://wiki.earthdata.nasa.gov/display/EL/How+To+Register+An+Application)
 
-# Build and Deploy
-
 1. Create a docker repository for the distribution web app.
 
    ```
@@ -35,19 +33,39 @@
 
    Note the value for your <docker_repo_url>
 
+1. Create a new S3 bucket to hold cloudformation artifacts.
+
+   ```
+   aws s3api create-bucket --bucket <bucket_name>
+   ```
+
+# Build and Deploy
+
 1. Build the distribution web app and upload the docker image to your docker repository.
 
    ```
    docker build -t distribution distribution/
    $(aws ecr get-login --no-include-email)
-   docker tag distribution:latest <docker_repo_url>/distribution:latest
-   docker push <docker_repo_url> distribution:latest
+   docker tag distribution:latest <docker_repo_url>:latest
+   docker push <docker_repo_url>:latest
    ```
 
-1. Deploy the cloudformation template.  This step can take 10-20 minutes.
+1. Install python requirements for the logging lambda function.
 
    ```
-   aws cloudformation deploy --template-file cloudformation.yaml --stack-name <stack_name> --capabilities CAPABILITY_NAMED_IAM --parameter-overrides \
+   pip install -r logging/requirements.txt -t logging/src/
+   ```
+
+1. Package the cloudformation template.
+
+   ```
+   aws cloudformation package --template-file cloudformation.yaml --s3-bucket <bucket_name> --output-template-file cloudformation-packaged.yaml
+   ```
+
+1. Deploy the packaged cloudformation template.  This step can take 10-20 minutes.
+
+   ```
+   aws cloudformation deploy --template-file cloudformation-packaged.yaml --stack-name <stack_name> --capabilities CAPABILITY_NAMED_IAM --parameter-overrides \
      VpcId=<> \
      SubnetId=<> \
      ContainerImage=<docker_repo_url> \
