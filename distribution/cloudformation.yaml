@@ -75,7 +75,7 @@ Resources:
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${Name}-ecsInstanceRole"
+      RoleName: !Sub "${Name}-instance"
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -125,7 +125,7 @@ Resources:
   TaskRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Ref Name
+      RoleName: !Sub "${Name}-task"
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
