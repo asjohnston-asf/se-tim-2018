@@ -1,3 +1,9 @@
+# Requirements
+
+- docker (tested with 18.03.1)
+- pip 3.6 (tested with 9.0.3)
+- aws cli (tested with 1.14.9)
+
 # Setup
 
 1. Provision a new Amazon Web Services account.
@@ -14,18 +20,11 @@
    - [Installing the AWS Command Line Interface](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
    - [Configuring the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
 
-1. Clone this repository.
-
-   ```
-   git clone git@github.com:asjohnston-asf/se-tim-2018.git
-   cd se-tim-2018
-   ```
-
-1. Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.
+1. Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.  Alternatively, you can re-use the client id and password for an existing application.
 
    - [How To Register An Application](https://wiki.earthdata.nasa.gov/display/EL/How+To+Register+An+Application)
 
-1. Create a docker repository for the distribution web app.
+1. Create a new docker repository for the distribution web app.
 
    ```
    aws ecr create-repository --repository-name distribution
@@ -39,6 +38,13 @@
    aws s3api create-bucket --bucket <artifact_bucket_name>
    ```
 
+1. Clone this repository and cd to the root directory.
+
+   ```
+   git clone git@github.com:asjohnston-asf/se-tim-2018.git
+   cd se-tim-2018
+   ```
+
 # Build and Deploy
 
 1. Build the distribution web app and upload the docker image to your docker repository.
@@ -50,7 +56,7 @@
    docker push <docker_repo_url>:latest
    ```
 
-1. Install python requirements for the logging lambda function.
+1. Install python requirements for the logging lambda function.  Use pip 3.6!
 
    ```
    pip install -r logging/requirements.txt -t logging/src/
