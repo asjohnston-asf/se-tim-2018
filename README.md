@@ -62,7 +62,7 @@
    aws cloudformation package --template-file cloudformation.yaml --s3-bucket <artifact_bucket_name> --output-template-file cloudformation-packaged.yaml
    ```
 
-1. Deploy the packaged cloudformation template.  This step can take 10-20 minutes.
+1. Deploy the packaged cloudformation template.  This step can take 15-25 minutes.
 
    ```
    aws cloudformation deploy --template-file cloudformation-packaged.yaml --stack-name <stack_name> --capabilities CAPABILITY_NAMED_IAM --parameter-overrides \
