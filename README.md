@@ -20,9 +20,11 @@
    - [Installing the AWS Command Line Interface](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
    - [Configuring the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
 
-1. Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.  Alternatively, you can re-use the client id and password for an existing application.
+1. [optional] Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.
 
    - [How To Register An Application](https://wiki.earthdata.nasa.gov/display/EL/How+To+Register+An+Application)
+
+   Alternatively, you can re-use the client id and password for an existing application.
 
 1. Create a new docker repository for the distribution web app.
 
@@ -30,7 +32,7 @@
    aws ecr create-repository --repository-name distribution
    ```
 
-   Note the value for your <docker_repo_url>
+   Note the value for your <docker_repo_url>.
 
 1. Create a new S3 bucket to hold cloudformation artifacts.
 
@@ -56,7 +58,7 @@
    docker push <docker_repo_url>:latest
    ```
 
-1. Install python requirements for the logging lambda function.  Use pip 3.6!
+1. Install python requirements for the logging lambda function.  **Use pip 3.6!**
 
    ```
    pip install -r logging/requirements.txt -t logging/src/
@@ -94,13 +96,13 @@
 
 # Upload data
 
-1. Upload your browse images to your public bucket
+1. Upload your browse images to your public bucket.
 
    ```
    aws s3 cp <browse_folder> s3://<public_bucket_name> --recursive
    ```
 
-1. Upload your product files to your private bucket
+1. Upload your product files to your private bucket.
 
    ```
    aws s3 cp <product_folder> s3://<private_bucket_name> --recursive
