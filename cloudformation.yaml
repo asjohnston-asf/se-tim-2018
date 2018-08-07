@@ -68,7 +68,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       Parameters:
-        Name: !Sub "${AWS::StackName}-storage"
+        Name: !Ref AWS::StackName
         LogBucket: !GetAtt LoggingStack.Outputs.LogBucket
       TemplateURL: storage/cloudformation.yaml
 
