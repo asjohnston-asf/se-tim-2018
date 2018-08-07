@@ -6,7 +6,7 @@ Parameters:
     Description: VPC Id in which to launch EC2 instances
     Type: AWS::EC2::VPC::Id
 
-  SubnetId:
+  SubnetIds:
     Description: List of Subnet Ids in which to launch EC2 instances
     Type: List<AWS::EC2::Subnet::Id>
 
@@ -81,7 +81,7 @@ Resources:
       Parameters:
         Name: !Sub "${AWS::StackName}-distribution"
         VpcId: !Ref VpcId
-        SubnetId: !Join [",", !Ref SubnetId]
+        SubnetIds: !Join [",", !Ref SubnetIds]
         ProductBucket: !GetAtt StorageStack.Outputs.PrivateBucket
         ContainerImage: !Ref ContainerImage
         UrsClientId: !Ref UrsClientId

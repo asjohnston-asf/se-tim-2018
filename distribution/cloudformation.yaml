@@ -9,7 +9,7 @@ Parameters:
     Description: VPC Id in which to launch EC2 instances
     Type: AWS::EC2::VPC::Id
 
-  SubnetId:
+  SubnetIds:
     Description: List of Subnet Ids in which to launch EC2 instances
     Type: List<AWS::EC2::Subnet::Id>
 
@@ -113,7 +113,7 @@ Resources:
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier: !Ref SubnetId
+      VPCZoneIdentifier: !Ref SubnetIds
       LaunchConfigurationName: !Ref LaunchConfiguration
       MinSize: 1
       MaxSize: 1
@@ -233,7 +233,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Ref Name
-      Subnets: !Ref SubnetId
+      Subnets: !Ref SubnetIds
       SecurityGroups:
       - !GetAtt LoadBalancerSecurityGroup.GroupId
 

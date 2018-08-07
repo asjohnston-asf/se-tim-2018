@@ -73,13 +73,17 @@
 1. Deploy the packaged cloudformation template.  This step can take 15-25 minutes.
 
    ```
-   aws cloudformation deploy --template-file cloudformation-packaged.yaml --stack-name <stack_name> --capabilities CAPABILITY_NAMED_IAM --parameter-overrides \
-     VpcId=<> \
-     SubnetId=<> \
-     ContainerImage=<docker_repo_url> \
-     UrsClientId=<urs_client_id> \
-     UrsAuthCode=<urs_password>
-     ElasticSearchCidrIp=<local ip>
+   aws cloudformation deploy \
+     --stack-name <stack_name> \
+     --template-file cloudformation-packaged.yaml \
+     --capabilities CAPABILITY_NAMED_IAM \
+     --parameter-overrides \
+         VpcId=<vpc_id> \
+         SubnetIds=<subnet_id_1>,<subnet_id_2> \
+         ContainerImage=<docker_repo_url>:latest \
+         UrsClientId=<urs_client_id> \
+         UrsAuthCode=<urs_password> \
+         ElasticSearchCidrIp=<local_ip>
    ```
 
    Note the stack output values for your:
