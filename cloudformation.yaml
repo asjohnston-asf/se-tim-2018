@@ -39,8 +39,11 @@ Parameters:
 
 Outputs:
 
-  AppUrl:
-    Value: !GetAtt DistributionStack.Outputs.AppUrl
+  ProductUrl:
+    Value: !GetAtt DistributionStack.Outputs.ProductUrl
+
+  BrowseUrl:
+    Value: !GetAtt StorageStack.Outputs.BrowseUrl
 
   UrsRedirectUri:
     Value: !GetAtt DistributionStack.Outputs.UrsRedirectUri

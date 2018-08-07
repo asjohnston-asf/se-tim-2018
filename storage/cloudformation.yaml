@@ -16,6 +16,9 @@ Outputs:
   PublicBucket:
     Value: !Ref PublicBucket
 
+  BrowseUrl:
+    Value: !GetAtt PublicBucket.WebsiteURL
+
 Resources:
 
   PrivateBucket:

@@ -47,7 +47,7 @@ Parameters:
 
 Outputs:
 
-  AppUrl:
+  ProductUrl:
     Value: !Sub "http://${LoadBalancer.DNSName}/distribution/"
 
   UrsRedirectUri:
