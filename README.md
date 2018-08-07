@@ -81,11 +81,12 @@
    ```
 
    Note the stack output values for your:
-   - <app_url>
+   - <product_url>
+   - <browse_url>
    - <urs_redirect_url>
-   - <private_bucket_name>
-   - <public_bucket_name>
    - <kibana_url>
+   - <public_bucket_name>
+   - <private_bucket_name>
 
 1. Add your app's <urs_redirect_url> in URS.
 
