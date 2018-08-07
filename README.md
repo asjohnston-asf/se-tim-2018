@@ -21,7 +21,7 @@
    cd se-tim-2018
    ```
 
-1. Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.
+1. Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.
 
    - [How To Register An Application](https://wiki.earthdata.nasa.gov/display/EL/How+To+Register+An+Application)
 
