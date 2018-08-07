@@ -17,7 +17,7 @@ Outputs:
     Value: !Ref PublicBucket
 
   BrowseUrl:
-    Value: !GetAtt PublicBucket.WebsiteURL
+    Value: !Sub "https://${PublicBucket.DomainName}/"
 
 Resources:
 
