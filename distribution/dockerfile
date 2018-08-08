@@ -12,8 +12,8 @@ RUN pip install -r /tmp/requirements.txt
 RUN git clone https://git.earthdata.nasa.gov/scm/aam/apache-urs-authentication-module.git /tmp/urs
 RUN cd /tmp/urs && apxs -i -c -n mod_auth_urs mod_auth_urs.c mod_auth_urs_cfg.c mod_auth_urs_session.c mod_auth_urs_ssl.c mod_auth_urs_http.c mod_auth_urs_json.c mod_auth_urs_crypto.c
 
-RUN a2enmod rewrite
-RUN a2enmod authz_groupfile
+#RUN a2enmod rewrite
+#RUN a2enmod authz_groupfile
 RUN a2enmod ssl
 
 RUN mkdir -p /var/tmp/urs/session
