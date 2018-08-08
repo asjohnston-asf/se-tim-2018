@@ -175,8 +175,6 @@ Resources:
             }
         - Name: SERVER_NAME
           Value: !GetAtt LoadBalancer.DNSName
-        - Name: URS_ACCESS_ERROR_URL
-          Value: !Sub "http://${LoadBalancer.DNSName}/error/failedauth.html"
         - Name: URS_AUTH_CODE
           Value: !Ref UrsAuthCode
         - Name: URS_AUTH_SERVER
