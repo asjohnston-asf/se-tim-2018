@@ -1,6 +1,7 @@
 from xml.etree import ElementTree
 from urllib.parse import urljoin, urlparse
 from os.path import basename
+from threading import Thread
 import requests
 
 
@@ -8,14 +9,21 @@ source_host = 'https://cmr.earthdata.nasa.gov'
 source_url = '/search/granules'
 source_collection_concept_id = 'C1206500991-ASF'
 
-granule_ur_suffix = ''
-new_product_url = ''
-new_browse_url = ''
+granule_ur_suffix = '-se-tim'
+new_product_url = 'http://se-tim-distribution-1848230930.us-east-1.elb.amazonaws.com/distribution/'
+new_browse_url = 'https://se-tim-public.s3.amazonaws.com/'
 
-provider = 'ASF'
-target_cmr_url = 'https://cmr.uat.earthdata.nasa.gov/ingest/providers/{0}/granules/'.format(provider)
+target_cmr_url = 'https://cmr.uat.earthdata.nasa.gov/ingest/providers/ASF/granules/'
 echo_token = ''
-target_dataset_id = ''
+target_dataset_id = 'SEASAT_SAR_LEVEL1_HDF5_SE_TIM'
+
+num_threads = 8
+
+
+def split_list(my_list, num_chunks):
+    chunk_size = int(len(my_list)/num_chunks) + 1
+    for i in range(0, len(my_list), chunk_size):
+        yield my_list[i:i + chunk_size]
 
 
 def parse_granules(echo10_response):
@@ -83,4 +91,6 @@ def submit_granules(granules):
 if __name__ == '__main__':
     granules = get_granules()
     update_granules(granules)
-    submit_granules(granules)
+    for granule_list in split_list(granules, num_threads):
+        t = Thread(target=submit_granules, args=(granule_list,))
+        t.start()
