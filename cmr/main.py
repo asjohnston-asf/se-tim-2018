@@ -1,72 +1,86 @@
 from xml.etree import ElementTree
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
+from os.path import basename
 import requests
 
 
 source_host = 'https://cmr.earthdata.nasa.gov'
 source_url = '/search/granules'
-source_collection_concept_id = ''
+source_collection_concept_id = 'C1206500991-ASF'
+
 granule_ur_suffix = ''
-old_product_url = ''
 new_product_url = ''
-old_browse_url = ''
 new_browse_url = ''
 
-target_cmr_url = 'https://cmr.uat.earthdata.nasa.gov/ingest/providers/ASF/granules/'
+provider = 'ASF'
+target_cmr_url = 'https://cmr.uat.earthdata.nasa.gov/ingest/providers/{0}/granules/'.format(provider)
 echo_token = ''
 target_dataset_id = ''
 
-parameters = {
-  'collection_concept_id': source_collection_concept_id,
-  'scroll': 'true',
-  'page_size': 2000,
-}
-
-headers = {
-  'Accept': 'application/echo10+xml',
-}
 
 def parse_granules(echo10_response):
-    granules = []
     xml_element_tree = ElementTree.fromstring(echo10_response)
-    for result in xml_element_tree.findall('result'):
-        granules.append(result.find('Granule'))
+    granules = [granule for granule in xml_element_tree.findall('result/Granule')]
     return granules
-    
 
-granules = []
 
-search_url = urljoin(source_host, source_url)
-response = requests.get(search_url, params=parameters, headers=headers)
-response.raise_for_status()
-granules += parse_granules(response.text)
+def get_granules():
+    search_url = urljoin(source_host, source_url)
+    parameters = {
+        'collection_concept_id': source_collection_concept_id,
+        'scroll': 'true',
+        'page_size': 2000,
+    }
+    headers = {
+        'Accept': 'application/echo10+xml',
+    }
 
-total_hits = int(response.headers['CMR-Hits'])
-headers['CMR-Scroll-Id'] = response.headers['CMR-Scroll-Id']
-
-while len(granules) < total_hits:
-    response = requests.get(search_url, headers=headers)
+    response = requests.get(search_url, params=parameters, headers=headers)
     response.raise_for_status()
-    granules += parse_granules(response.text)
+    granules = parse_granules(response.text)
 
-for granule in granules:
-    granule.find('GranuleUR').text += granule_ur_suffix
-    granule.find('Collection/DataSetId').text = target_dataset_id
-    browse_url = granule.find('AssociatedBrowseImageUrls/ProviderBrowseUrl/URL')
-    browse_url.text = browse_url.text.replace(old_browse_url, new_browse_url)
-    product_url = granule.find('OnlineAccessURLs/OnlineAccessURL/URL')
-    product_url.text = product_url.text.replace(old_product_url, new_product_url)
+    total_hits = int(response.headers['CMR-Hits'])
+    headers['CMR-Scroll-Id'] = response.headers['CMR-Scroll-Id']
 
-session = requests.Session()
-headers = {
-    'Content-Type': 'application/echo10+xml',
-    'Echo-Token': echo_token,
-}
-session.headers.update(headers)
+    while len(granules) < total_hits:
+        response = requests.get(search_url, headers=headers)
+        response.raise_for_status()
+        granules += parse_granules(response.text)
 
-for granule in granules:
-    granule_ur = granule.find('GranuleUR').text
-    url = urljoin(target_cmr_url, granule_ur)
-    response = session.put(url, data=ElementTree.tostring(granule))
-    response.raise_for_status()
-    print(response.text)
+    return granules
+
+
+def update_granules(granules):
+    for granule in granules:
+        granule.find('GranuleUR').text += granule_ur_suffix
+        granule.find('Collection/DataSetId').text = target_dataset_id
+
+        browse_url = granule.find('AssociatedBrowseImageUrls/ProviderBrowseUrl/URL')
+        browse_file = basename(urlparse(browse_url.text).path)
+        browse_url.text = urljoin(new_browse_url, browse_file)
+
+        product_url = granule.find('OnlineAccessURLs/OnlineAccessURL/URL')
+        product_file = basename(urlparse(product_url.text).path)
+        product_url.text = urljoin(new_product_url, product_file)
+
+
+def submit_granules(granules):
+    session = requests.Session()
+    headers = {
+        'Content-Type': 'application/echo10+xml',
+        'Echo-Token': echo_token,
+    }
+    session.headers.update(headers)
+
+    for granule in granules:
+        granule_ur = granule.find('GranuleUR').text
+        url = urljoin(target_cmr_url, granule_ur)
+        response = session.put(url, data=ElementTree.tostring(granule))
+        response.raise_for_status()
+        print(granule_ur + ': ' + response.text)
+
+
+if __name__ == '__main__':
+    granules = get_granules()
+    update_granules(granules)
+    submit_granules(granules)
