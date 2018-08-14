@@ -8,25 +8,7 @@ Parameters:
   ElasticSearchCidrIp:
     Type: String
 
-Outputs:
-
-  LogBucket:
-    Value: !Ref LogBucket
-
-  KibanaUrl:
-    Value: !Sub "https://${Domain.DomainEndpoint}/_plugin/kibana/"
-
 Resources:
-
-  LogBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Ref Name
-      AccessControl: LogDeliveryWrite
-      NotificationConfiguration:
-        LambdaConfigurations:
-        - Function: !GetAtt Lambda.Arn
-          Event: s3:ObjectCreated:*
 
   Domain:
     Type: AWS::Elasticsearch::Domain
@@ -61,83 +43,3 @@ Resources:
         EBSEnabled: true
         VolumeSize: 10
         VolumeType: gp2
-
-  DeadLetterQueue:
-    Type: AWS::SQS::Queue
-    Properties:
-      QueueName: !Sub "${Name}-dlq"
-      MessageRetentionPeriod: 1209600
-
-  LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub "/aws/lambda/${Name}"
-      RetentionInDays: 30
-
-  Role:
-    Type: AWS::IAM::Role
-    Properties: 
-      RoleName: !Ref Name
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          Action: sts:AssumeRole
-          Principal:
-            Service: 
-            - lambda.amazonaws.com
-          Effect: Allow
-      Policies:
-      - PolicyName: policy
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-          - Effect: Allow
-            Action:
-            - logs:CreateLogStream
-            - logs:PutLogEvents
-            Resource: !GetAtt LogGroup.Arn
-          - Effect: Allow
-            Action: sqs:SendMessage
-            Resource: !GetAtt DeadLetterQueue.Arn
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${Name}/*"
-          - Effect: Allow
-            Action:
-            - es:ESHttpHead
-            - es:ListDomainNames
-            - es:ESHttpPost
-            - es:ESHttpGet
-            - es:CreateElasticsearchDomain
-            - es:ESHttpPut
-            Resource: "*"
-          - Effect: Allow
-            Action:
-            - es:*
-            Resource: !GetAtt Domain.DomainArn
-
-  Lambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Ref Name
-      Code: src/
-      DeadLetterConfig:
-        TargetArn: !GetAtt DeadLetterQueue.Arn
-      Role: !GetAtt Role.Arn
-      Environment: 
-        Variables:
-          ES_HOST: !GetAtt Domain.DomainEndpoint
-          ES_INDEX: !Ref Name
-      Timeout: 60
-      Handler: main.lambda_handler
-      Runtime: python3.6
-      MemorySize: 128
-
-  EventPermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      FunctionName: !GetAtt Lambda.Arn
-      Action: lambda:InvokeFunction
-      Principal: s3.amazonaws.com
-      SourceAccount: !Ref AWS::AccountId
-      SourceArn: !Sub "arn:aws:s3:::${Name}"
