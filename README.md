@@ -54,8 +54,8 @@
    ```
    docker build -t distribution distribution/
    $(aws ecr get-login --no-include-email)
-   docker tag distribution:latest <docker_repo_url>:latest
-   docker push <docker_repo_url>:latest
+   docker tag distribution <docker_repo_url>
+   docker push <docker_repo_url>
    ```
 
 1. Install python requirements for the logging lambda function.  **Use pip 3.6!**
@@ -80,7 +80,7 @@
      --parameter-overrides \
          VpcId=<vpc_id> \
          SubnetIds=<subnet_id_1>,<subnet_id_2> \
-         ContainerImage=<docker_repo_url>:latest \
+         ContainerImage=<docker_repo_url> \
          UrsClientId=<urs_client_id> \
          UrsAuthCode=<urs_password> \
          ElasticSearchCidrIp=<local_ip>
