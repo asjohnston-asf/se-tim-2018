@@ -20,6 +20,8 @@ Resources:
 
   LogBucket:
     Type: AWS::S3::Bucket
+    DependsOn:
+    - EventPermission
     Properties:
       BucketName: !Ref Name
       AccessControl: LogDeliveryWrite
@@ -61,6 +63,23 @@ Resources:
         EBSEnabled: true
         VolumeSize: 10
         VolumeType: gp2
+
+  Lambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref Name
+      Code: src/
+      DeadLetterConfig:
+        TargetArn: !GetAtt DeadLetterQueue.Arn
+      Role: !GetAtt Role.Arn
+      Environment:
+        Variables:
+          ES_HOST: !GetAtt Domain.DomainEndpoint
+          ES_INDEX: !Ref Name
+      Timeout: 60
+      Handler: main.lambda_handler
+      Runtime: python3.6
+      MemorySize: 128
 
   DeadLetterQueue:
     Type: AWS::SQS::Queue
@@ -115,23 +134,6 @@ Resources:
             Action:
             - es:*
             Resource: !GetAtt Domain.DomainArn
-
-  Lambda:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Ref Name
-      Code: src/
-      DeadLetterConfig:
-        TargetArn: !GetAtt DeadLetterQueue.Arn
-      Role: !GetAtt Role.Arn
-      Environment: 
-        Variables:
-          ES_HOST: !GetAtt Domain.DomainEndpoint
-          ES_INDEX: !Ref Name
-      Timeout: 60
-      Handler: main.lambda_handler
-      Runtime: python3.6
-      MemorySize: 128
 
   EventPermission:
     Type: AWS::Lambda::Permission
