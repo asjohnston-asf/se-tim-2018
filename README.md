@@ -81,8 +81,10 @@
          VpcId=<vpc_id> \
          SubnetIds=<subnet_id_1>,<subnet_id_2> \
          ContainerImage=<docker_repository_uri> \
+         UrsServer=https://urs.earthdata.nasa.gov \
          UrsClientId=<urs_client_id> \
          UrsAuthCode=<urs_password> \
+         LoadBalancerCidrIp=0.0.0.0/0 \
          ElasticSearchCidrIp=<local_ip>
    ```
 
