@@ -2,16 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 
 Parameters:
 
-  UrsServer:
-    Description: URL for the Earthdata Login server to integrate with
-    Type: String
-    Default: https://urs.earthdata.nasa.gov
-
-  LoadBalancerCidrIp:
-    Description: CIDR block from which the web app will allow traffic
-    Type: String
-    Default: 0.0.0.0/0
-
   ElasticSearchCidrIp:
     Description: CIDR block from which elasticsearch will allow traffic
     Type: String
