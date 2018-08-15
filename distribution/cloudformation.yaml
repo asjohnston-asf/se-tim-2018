@@ -100,7 +100,7 @@ Resources:
       AssociatePublicIpAddress: true
       IamInstanceProfile: !GetAtt InstanceProfile.Arn
       ImageId: !Ref Ami
-      InstanceType: t2.nano
+      InstanceType: t2.micro
       SecurityGroups:
       - !Ref InstanceSecurityGroup
       UserData:
