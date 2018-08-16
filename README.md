@@ -125,9 +125,19 @@
 
 # Update CMR
 
-1. Clone your collection in the Common Metadata Repository using the Metadata Management Tool.  Note your new collection's <collection_concept_id>.
+1. Clone your collection in the Common Metadata Repository (CMR) using the Metadata Management Tool.  Note your new collection's <collection_dataset_id>.
 
    - [Metadata Management Tool (MMT) User's Guide](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide)
      - [Clone and edit a collection record in the CMR for my provider](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide#MetadataManagementTool(MMT)User'sGuide-CloneandeditacollectionrecordintheCMRformyprovider)
 
-1. Run the cmr update script to populate your new collection in CMR.
+1. Obtain an echo token for your target CMR environment.
+
+   - [CMR Data Partner User Guide](https://wiki.earthdata.nasa.gov/display/CMR/CMR+Data+Partner+User+Guide)
+     - [To Create a Token](https://wiki.earthdata.nasa.gov/display/CMR/CMR+Data+Partner+User+Guide#CMRDataPartnerUserGuide-ToCreateaToken)
+
+1. Run the CMR update script to populate your new collection in CMR.
+
+   ```
+   python cmr/main.py \
+     --echo-token <echo_token>
+   ```
