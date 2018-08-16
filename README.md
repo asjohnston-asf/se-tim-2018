@@ -125,10 +125,14 @@
 
 # Update CMR
 
-1. Clone your collection in the Common Metadata Repository (CMR) using the Metadata Management Tool.  Note your new collection's <collection_dataset_id>.
+1. [optional] Create and publish a new collection in your target CMR environment via the Metadata Management Tool.  Note your new collection's <collection_dataset_id>.
 
    - [Metadata Management Tool (MMT) User's Guide](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide)
+     - [Create a collection record in the CMR for my provider](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide#MetadataManagementTool(MMT)User'sGuide-CreateacollectionrecordintheCMRformyprovider)
      - [Clone and edit a collection record in the CMR for my provider](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide#MetadataManagementTool(MMT)User'sGuide-CloneandeditacollectionrecordintheCMRformyprovider)
+     - [Manage collection and granule permissions for my provider](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide#MetadataManagementTool(MMT)User'sGuide-Managecollectionandgranulepermissionsformyprovider)
+
+   Alternatively, you can update the granules of your existing collection in-place.
 
 1. Obtain an echo token for your target CMR environment.
 
@@ -139,5 +143,14 @@
 
    ```
    python cmr/main.py \
-     --echo-token <echo_token>
+     --source_host=cmr.earthdata.nasa.gov \
+     --source_collection_concept_id=<source_collection_concept_id> \
+     --target_host=cmr.uat.earthdata.nasa.gov \
+     --provider=<provider> \
+     --echo_token=<echo_token> \
+     --new_granule_ur_suffix=-se-tim \
+     --new_dataset_id=<collection_dataset_id> \
+     --new_product_url=<product_url> \
+     --new_browse_url=<browse_url> \
+     --num_threads=8
    ```
