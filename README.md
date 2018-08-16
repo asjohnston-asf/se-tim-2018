@@ -20,11 +20,20 @@
    - [Installing the AWS Command Line Interface](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
    - [Configuring the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
 
-1. [optional] Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.
+1. [optional] Register a new application in Earthdata Login.  Note your new app's <urs_client_id> and <urs_app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.
 
    - [How To Register An Application](https://wiki.earthdata.nasa.gov/display/EL/How+To+Register+An+Application)
 
    Alternatively, you can re-use the client id and password for an existing application.
+
+1. Generate your <urs_auth_code> from your <urs_client_id> and <urs_app_password>.
+
+   ```
+   echo -n "<urs_client_id>:<urs_app_password>" | base64
+   ```
+
+   See the "UrsAuthCode" parameter of the [Apache URS Authentication Module](https://developer.earthdata.nasa.gov/urs/urs-integration/apache-urs-authentication-module) for more details.
+
 
 1. Create a new docker repository for the distribution web app.
 
@@ -83,7 +92,7 @@
          ContainerImage=<docker_repository_uri> \
          UrsServer=https://urs.earthdata.nasa.gov \
          UrsClientId=<urs_client_id> \
-         UrsAuthCode=<urs_password> \
+         UrsAuthCode=<urs_auth_code> \
          LoadBalancerCidrIp=0.0.0.0/0 \
          ElasticSearchCidrIp=<local_ip>
    ```
@@ -100,7 +109,7 @@
 
    - [Manage Redirect URIs](https://developer.earthdata.nasa.gov/urs/urs-integration/how-to-register-an-application/manage-redirect-uris)
 
-# Upload data
+# Upload Data
 
 1. Upload your browse images to your public bucket.
 
