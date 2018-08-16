@@ -60,6 +60,34 @@ Resources:
     Properties:
       ClusterName: !Ref Name
 
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref SubnetIds
+      LaunchConfigurationName: !Ref LaunchConfiguration
+      MinSize: 1
+      MaxSize: 1
+      Tags:
+      - Key: Name
+        Value: !Ref Name
+        PropagateAtLaunch: true
+
+  LaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      AssociatePublicIpAddress: true
+      IamInstanceProfile: !GetAtt InstanceProfile.Arn
+      ImageId: !Ref Ami
+      InstanceType: t2.micro
+      SecurityGroups:
+      - !Ref InstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |-
+          #!/bin/bash -xe
+          echo ECS_CLUSTER="${Cluster}" >> /etc/ecs/ecs.config
+          echo ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION=1m >> /etc/ecs/ecs.config
+      InstanceMonitoring: false
+
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -94,60 +122,22 @@ Resources:
       Roles:
       - !Ref InstanceRole
 
-  LaunchConfiguration:
-    Type: AWS::AutoScaling::LaunchConfiguration
+  Service:
+    Type: AWS::ECS::Service
+    DependsOn:
+    - HttpListener
     Properties:
-      AssociatePublicIpAddress: true
-      IamInstanceProfile: !GetAtt InstanceProfile.Arn
-      ImageId: !Ref Ami
-      InstanceType: t2.nano
-      SecurityGroups:
-      - !Ref InstanceSecurityGroup
-      UserData:
-        Fn::Base64: !Sub |-
-          #!/bin/bash -xe
-          echo ECS_CLUSTER="${Cluster}" >> /etc/ecs/ecs.config
-          echo ECS_ENGINE_TASK_CLEANUP_WAIT_DURATION=1m >> /etc/ecs/ecs.config
-      InstanceMonitoring: false
-
-  AutoScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Properties:
-      VPCZoneIdentifier: !Ref SubnetIds
-      LaunchConfigurationName: !Ref LaunchConfiguration
-      MinSize: 1
-      MaxSize: 1
-      Tags:
-      - Key: Name
-        Value: !Ref Name
-        PropagateAtLaunch: true
-
-  TaskRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub "${Name}-task"
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          Action: sts:AssumeRole
-          Principal:
-            Service:
-            - ecs-tasks.amazonaws.com
-          Effect: Allow
-      Policies:
-      - PolicyName: policy
-        PolicyDocument:
-          Version: 2012-10-17
-          Statement:
-          - Effect: Allow
-            Action: s3:GetObject
-            Resource: !Sub "arn:aws:s3:::${ProductBucket}/*"
-
-  LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Ref Name
-      RetentionInDays: 30
+      ServiceName: !Ref Name
+      Cluster: !Ref Cluster
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 0
+        MaximumPercent: 100
+      LoadBalancers:
+      - TargetGroupArn: !Ref TargetGroup
+        ContainerName: !Ref Name
+        ContainerPort: 80
 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition
@@ -184,22 +174,62 @@ Resources:
         - Name: URS_REDIRECT_URL
           Value: !Sub "http://${LoadBalancer.DNSName}/distribution/oauth"
 
-  Service:
-    Type: AWS::ECS::Service
-    DependsOn:
-    - HttpListener
+  TaskRole:
+    Type: AWS::IAM::Role
     Properties:
-      ServiceName: !Ref Name
-      Cluster: !Ref Cluster
-      DesiredCount: 1
-      TaskDefinition: !Ref TaskDefinition
-      DeploymentConfiguration:
-        MinimumHealthyPercent: 0
-        MaximumPercent: 100
-      LoadBalancers:
-      - TargetGroupArn: !Ref TargetGroup
-        ContainerName: !Ref Name
-        ContainerPort: 80
+      RoleName: !Sub "${Name}-task"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          Action: sts:AssumeRole
+          Principal:
+            Service:
+            - ecs-tasks.amazonaws.com
+          Effect: Allow
+      Policies:
+      - PolicyName: policy
+        PolicyDocument:
+          Version: 2012-10-17
+          Statement:
+          - Effect: Allow
+            Action: s3:GetObject
+            Resource: !Sub "arn:aws:s3:::${ProductBucket}/*"
+
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref Name
+      RetentionInDays: 30
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: !Ref Name
+      Subnets: !Ref SubnetIds
+      SecurityGroups:
+      - !GetAtt LoadBalancerSecurityGroup.GroupId
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Sub "${Name}-load-balancer"
+      GroupDescription: !Sub "Security group for ${Name} load balancer"
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+      - CidrIp: !Ref LoadBalancerCidrIp
+        IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+
+  HttpListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - Type: forward
+        TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
 
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
@@ -214,33 +244,3 @@ Resources:
       TargetGroupAttributes:
       - Key: deregistration_delay.timeout_seconds
         Value: 0
-
-  LoadBalancerSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupName: !Sub "${Name}-load-balancer"
-      GroupDescription: !Sub "Security group for ${Name} load balancer"
-      VpcId: !Ref VpcId
-      SecurityGroupIngress:
-      - CidrIp: !Ref LoadBalancerCidrIp
-        IpProtocol: tcp
-        FromPort: 80
-        ToPort: 80
-
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Name: !Ref Name
-      Subnets: !Ref SubnetIds
-      SecurityGroups:
-      - !GetAtt LoadBalancerSecurityGroup.GroupId
-
-  HttpListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      DefaultActions:
-      - Type: forward
-        TargetGroupArn: !Ref TargetGroup
-      LoadBalancerArn: !Ref LoadBalancer
-      Port: 80
-      Protocol: HTTP

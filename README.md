@@ -32,7 +32,7 @@
    aws ecr create-repository --repository-name distribution
    ```
 
-   Note the value for your <docker_repo_url>.
+   Note the value for your <docker_repository_uri>.
 
 1. Create a new S3 bucket to hold cloudformation artifacts.
 
@@ -54,8 +54,8 @@
    ```
    docker build -t distribution distribution/
    $(aws ecr get-login --no-include-email)
-   docker tag distribution:latest <docker_repo_url>:latest
-   docker push <docker_repo_url>:latest
+   docker tag distribution <docker_repository_uri>
+   docker push <docker_repository_uri>
    ```
 
 1. Install python requirements for the logging lambda function.  **Use pip 3.6!**
@@ -80,9 +80,11 @@
      --parameter-overrides \
          VpcId=<vpc_id> \
          SubnetIds=<subnet_id_1>,<subnet_id_2> \
-         ContainerImage=<docker_repo_url>:latest \
+         ContainerImage=<docker_repository_uri> \
+         UrsServer=https://urs.earthdata.nasa.gov \
          UrsClientId=<urs_client_id> \
          UrsAuthCode=<urs_password> \
+         LoadBalancerCidrIp=0.0.0.0/0 \
          ElasticSearchCidrIp=<local_ip>
    ```
 
