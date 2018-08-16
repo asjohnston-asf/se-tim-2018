@@ -85,12 +85,15 @@ def submit_granules(granules):
         url = urljoin(target_cmr_url, granule_ur)
         response = session.put(url, data=ElementTree.tostring(granule))
         response.raise_for_status()
-        print(granule_ur + ': ' + response.text)
 
 
 if __name__ == '__main__':
+    print('Fetching granule metadata for collection {0} from {1}'.format(source_collection_concept_id, source_host))
     granules = get_granules()
+    print('{0} granules fetched'.format(len(granules)))
+    print('Updating granule metadata')
     update_granules(granules)
+    print('Ingesting updated granules into {0}'.format(target_cmr_url))
     for granule_list in split_list(granules, num_threads):
         t = Thread(target=submit_granules, args=(granule_list,))
         t.start()
