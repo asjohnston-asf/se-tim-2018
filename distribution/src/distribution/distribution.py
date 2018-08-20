@@ -1,7 +1,7 @@
 import json
 import os
 import boto3
-from flask import Flask, redirect, request, abort
+from flask import Flask, redirect, request
 
 
 app = Flask(__name__)
