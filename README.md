@@ -142,7 +142,7 @@
    - [CMR Data Partner User Guide](https://wiki.earthdata.nasa.gov/display/CMR/CMR+Data+Partner+User+Guide)
      - [To Create a Token](https://wiki.earthdata.nasa.gov/display/CMR/CMR+Data+Partner+User+Guide#CMRDataPartnerUserGuide-ToCreateaToken)
 
-1. Run the CMR update script to populate your new collection in CMR.
+1. Run the CMR update script to populate your new collection in CMR.  **This script makes assumptions about how your CMR metadata is structured.  Review the script and adapt it as necessary before running it!**
 
    ```
    python cmr/main.py \
