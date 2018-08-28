@@ -52,7 +52,7 @@
 1. Clone this repository and cd to the root directory.
 
    ```
-   git clone git@github.com:asjohnston-asf/se-tim-2018.git
+   git clone https://github.com/asjohnston-asf/se-tim-2018.git
    cd se-tim-2018
    ```
 
