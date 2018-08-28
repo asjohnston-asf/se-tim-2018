@@ -1,7 +1,7 @@
 import json
 import os
 import boto3
-from flask import Flask, redirect, request, abort
+from flask import Flask, redirect, request
 
 
 app = Flask(__name__)
@@ -16,7 +16,7 @@ def init_app():
 
 @app.route('/<path:object_key>')
 def download_redirect(object_key):
-    signed_url =  s3.generate_presigned_url(
+    signed_url = s3.generate_presigned_url(
         ClientMethod='get_object',
         Params={
             'Bucket': app.config['bucket'],

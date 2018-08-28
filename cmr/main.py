@@ -2,22 +2,25 @@ from xml.etree import ElementTree
 from urllib.parse import urljoin, urlparse
 from os.path import basename
 from threading import Thread
+from argparse import ArgumentParser
 import requests
 
 
-source_host = 'https://cmr.earthdata.nasa.gov'
-source_url = '/search/granules'
-source_collection_concept_id = 'C1206500991-ASF'
-
-granule_ur_suffix = '-se-tim'
-new_product_url = 'http://se-tim-distribution-1848230930.us-east-1.elb.amazonaws.com/distribution/'
-new_browse_url = 'https://se-tim-public.s3.amazonaws.com/'
-
-target_cmr_url = 'https://cmr.uat.earthdata.nasa.gov/ingest/providers/ASF/granules/'
-echo_token = ''
-target_dataset_id = 'SEASAT_SAR_LEVEL1_HDF5_SE_TIM'
-
-num_threads = 8
+def get_args():
+    cmr_hosts = ['cmr.earthdata.nasa.gov', 'cmr.uat.earthdata.nasa.gov', 'cmr.sit.earthdata.nasa.gov']
+    parser = ArgumentParser()
+    parser.add_argument('--source_host', default='cmr.earthdata.nasa.gov', choices=cmr_hosts)
+    parser.add_argument('--source_collection_concept_id', required=True)
+    parser.add_argument('--target_host', default='cmr.uat.earthdata.nasa.gov', choices=cmr_hosts)
+    parser.add_argument('--provider', required=True)
+    parser.add_argument('--echo_token', required=True)
+    parser.add_argument('--new_granule_ur_suffix', default='')
+    parser.add_argument('--new_dataset_id', required=True)
+    parser.add_argument('--new_product_url', required=True)
+    parser.add_argument('--new_browse_url', required=True)
+    parser.add_argument('--num_threads', type=int, default=8)
+    args = parser.parse_args()
+    return args
 
 
 def split_list(my_list, num_chunks):
@@ -32,10 +35,11 @@ def parse_granules(echo10_response):
     return granules
 
 
-def get_granules():
-    search_url = urljoin(source_host, source_url)
+def get_granules(cmr_host, collection_concept_id):
+    print('Fetching granule metadata for collection {0} from {1}'.format(collection_concept_id, cmr_host))
+    search_url = 'https://{0}/search/granules'.format(cmr_host)
     parameters = {
-        'collection_concept_id': source_collection_concept_id,
+        'collection_concept_id': collection_concept_id,
         'scroll': 'true',
         'page_size': 2000,
     }
@@ -55,13 +59,15 @@ def get_granules():
         response.raise_for_status()
         granules += parse_granules(response.text)
 
+    print('{0} granules fetched'.format(len(granules)))
     return granules
 
 
-def update_granules(granules):
+def update_granules(granules, new_granule_ur_suffix, new_dataset_id, new_browse_url, new_product_url):
+    print('Updating granule metadata')
     for granule in granules:
-        granule.find('GranuleUR').text += granule_ur_suffix
-        granule.find('Collection/DataSetId').text = target_dataset_id
+        granule.find('GranuleUR').text += new_granule_ur_suffix
+        granule.find('Collection/DataSetId').text = new_dataset_id
 
         browse_url = granule.find('AssociatedBrowseImageUrls/ProviderBrowseUrl/URL')
         browse_file = basename(urlparse(browse_url.text).path)
@@ -72,7 +78,8 @@ def update_granules(granules):
         product_url.text = urljoin(new_product_url, product_file)
 
 
-def submit_granules(granules):
+def submit_granules(granules, cmr_host, provider, echo_token):
+    ingest_url = 'https://{0}/ingest/providers/{1}/granules/'.format(cmr_host, provider)
     session = requests.Session()
     headers = {
         'Content-Type': 'application/echo10+xml',
@@ -82,15 +89,17 @@ def submit_granules(granules):
 
     for granule in granules:
         granule_ur = granule.find('GranuleUR').text
-        url = urljoin(target_cmr_url, granule_ur)
+        url = urljoin(ingest_url, granule_ur)
         response = session.put(url, data=ElementTree.tostring(granule))
         response.raise_for_status()
-        print(granule_ur + ': ' + response.text)
 
 
 if __name__ == '__main__':
-    granules = get_granules()
-    update_granules(granules)
-    for granule_list in split_list(granules, num_threads):
-        t = Thread(target=submit_granules, args=(granule_list,))
+    args = get_args()
+    granules = get_granules(args.source_host, args.source_collection_concept_id)
+    update_granules(granules, args.new_granule_ur_suffix, args.new_dataset_id, args.new_browse_url, args.new_product_url)
+
+    print('Ingesting updated granules into {0}'.format(args.target_host))
+    for granule_list in split_list(granules, args.num_threads):
+        t = Thread(target=submit_granules, args=(granule_list, args.target_host, args.provider, args.echo_token))
         t.start()

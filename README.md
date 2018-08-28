@@ -20,11 +20,20 @@
    - [Installing the AWS Command Line Interface](https://docs.aws.amazon.com/cli/latest/userguide/installing.html)
    - [Configuring the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html)
 
-1. [optional] Register a new application in Earthdata Login.  Note your new app's <client_id> and <app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.
+1. [optional] Register a new application in Earthdata Login.  Note your new app's <urs_client_id> and <urs_app_password>.  Use any placeholder URL for the Redirect URL field; we'll update that later.
 
    - [How To Register An Application](https://wiki.earthdata.nasa.gov/display/EL/How+To+Register+An+Application)
 
    Alternatively, you can re-use the client id and password for an existing application.
+
+1. Generate your <urs_auth_code> from your <urs_client_id> and <urs_app_password>.
+
+   ```
+   echo -n "<urs_client_id>:<urs_app_password>" | base64
+   ```
+
+   See the "UrsAuthCode" parameter of the [Apache URS Authentication Module](https://developer.earthdata.nasa.gov/urs/urs-integration/apache-urs-authentication-module) for more details.
+
 
 1. Create a new docker repository for the distribution web app.
 
@@ -43,7 +52,7 @@
 1. Clone this repository and cd to the root directory.
 
    ```
-   git clone git@github.com:asjohnston-asf/se-tim-2018.git
+   git clone https://github.com/asjohnston-asf/se-tim-2018.git
    cd se-tim-2018
    ```
 
@@ -67,7 +76,10 @@
 1. Package the cloudformation template.
 
    ```
-   aws cloudformation package --template-file cloudformation.yaml --s3-bucket <artifact_bucket_name> --output-template-file cloudformation-packaged.yaml
+   aws cloudformation package \
+     --template-file cloudformation.yaml \
+     --s3-bucket <artifact_bucket_name> \
+     --output-template-file cloudformation-packaged.yaml
    ```
 
 1. Deploy the packaged cloudformation template.  This step can take 15-25 minutes.
@@ -83,7 +95,7 @@
          ContainerImage=<docker_repository_uri> \
          UrsServer=https://urs.earthdata.nasa.gov \
          UrsClientId=<urs_client_id> \
-         UrsAuthCode=<urs_password> \
+         UrsAuthCode=<urs_auth_code> \
          LoadBalancerCidrIp=0.0.0.0/0 \
          ElasticSearchCidrIp=<local_ip>
    ```
@@ -100,7 +112,7 @@
 
    - [Manage Redirect URIs](https://developer.earthdata.nasa.gov/urs/urs-integration/how-to-register-an-application/manage-redirect-uris)
 
-# Upload data
+# Upload Data
 
 1. Upload your browse images to your public bucket.
 
@@ -116,9 +128,32 @@
 
 # Update CMR
 
-1. Clone your collection in the Common Metadata Repository using the Metadata Management Tool.  Note your new collection's <collection_concept_id>.
+1. [optional] Create and publish a new collection in your target CMR environment via the Metadata Management Tool.  Note your new collection's <collection_dataset_id>.
 
    - [Metadata Management Tool (MMT) User's Guide](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide)
+     - [Create a collection record in the CMR for my provider](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide#MetadataManagementTool(MMT)User'sGuide-CreateacollectionrecordintheCMRformyprovider)
      - [Clone and edit a collection record in the CMR for my provider](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide#MetadataManagementTool(MMT)User'sGuide-CloneandeditacollectionrecordintheCMRformyprovider)
+     - [Manage collection and granule permissions for my provider](https://wiki.earthdata.nasa.gov/display/CMR/Metadata+Management+Tool+%28MMT%29+User%27s+Guide#MetadataManagementTool(MMT)User'sGuide-Managecollectionandgranulepermissionsformyprovider)
 
-1. Run the cmr update script to populate your new collection in CMR.
+   Alternatively, you can update the granules of your existing collection in-place.
+
+1. Obtain an echo token for your target CMR environment.
+
+   - [CMR Data Partner User Guide](https://wiki.earthdata.nasa.gov/display/CMR/CMR+Data+Partner+User+Guide)
+     - [To Create a Token](https://wiki.earthdata.nasa.gov/display/CMR/CMR+Data+Partner+User+Guide#CMRDataPartnerUserGuide-ToCreateaToken)
+
+1. Run the CMR update script to populate your new collection in CMR.  **This script makes assumptions about how your CMR metadata is structured.  Review the script and adapt it as necessary before running it!**
+
+   ```
+   python cmr/main.py \
+     --source_host=cmr.earthdata.nasa.gov \
+     --source_collection_concept_id=<source_collection_concept_id> \
+     --target_host=cmr.uat.earthdata.nasa.gov \
+     --provider=<provider> \
+     --echo_token=<echo_token> \
+     --new_granule_ur_suffix=-se-tim \
+     --new_dataset_id=<collection_dataset_id> \
+     --new_product_url=<product_url> \
+     --new_browse_url=<browse_url> \
+     --num_threads=8
+   ```
